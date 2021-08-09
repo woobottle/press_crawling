@@ -6,25 +6,28 @@ class HaniNewsCrawler {
   public constructor() {}
 
   public async crawlArticles(day: number) {
+    const categories = ["society", "economy", "politics", "international"];
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - day);
     dateLimit.setHours(0, 0, 0, 0);
 
     const result = [];
 
-    let isDone = false;
-    for (let i = 1; !isDone; ++i) {
-      const articleUrls = await this.crawlArticleUrls(
-        `https://www.hani.co.kr/arti/politics/list${i}.html`
-      );
+    for (const category of categories) {
+      let isDone = false;
+      for (let i = 1; !isDone; ++i) {
+        const articleUrls = await this.crawlArticleUrls(
+          `https://www.hani.co.kr/arti/${category}/list${i}.html`
+        );
 
-      for (let { link, date } of articleUrls) {
-        if (date < dateLimit) {
-          isDone = true;
-          break;
+        for (let { link, date } of articleUrls) {
+          if (date < dateLimit) {
+            isDone = true;
+            break;
+          }
+
+          result.push(await this.getArticle(link));
         }
-
-        result.push(await this.getArticle(link));
       }
     }
 
@@ -64,7 +67,7 @@ class HaniNewsCrawler {
 
     const result = {};
 
-    result["press"] = "hani";
+    result["press"] = "hankyoreh";
     result["url"] = url;
     result["headline"] = $("#article_view_headline > h4 > span").text().trim();
     result["subtitle"] = $(
@@ -72,33 +75,43 @@ class HaniNewsCrawler {
     )
       .text()
       .trim();
-    result["time"] = $(
+    result["createdAt"] = $(
       "#article_view_headline > p.date-time > span:nth-child(1)"
     )
       .text()
       .trim();
-    result["modifiedtime"] = $(
+    result["modifiedAt"] = $(
       "#article_view_headline > p.date-time > span:nth-child(2)"
     )
       .text()
       .trim();
-    result["body"] = $("#a-left-scroll-in > div.article-text > div > div.text")
-      .html()
-      .trim();
-
-    result["reporter"] = $(
-      "#a-left-scroll-in > div.article-text > div > div.text"
-    )
-      .contents()
-      .eq(-2)
-      .text()
-      .trim();
+    result["image"] = `https:${
+      $(
+        "#a-left-scroll-in > div.article-text > div > div.text > .image-area > .imageC > .image > img"
+      )[0]?.attribs?.src
+    }`;
+    result["reporterName"] = $("meta[property='dd:author']")[0]?.attribs?.content?.split(",")[0];
     result["mail"] = $(
-      "#a-left-scroll-in > div.article-text > div > div.text > a"
-    )
-      .text()
-      .trim();
+      "#a-left-scroll-in > div.article-text > div > div.text > a[href^='mailto']"
+    ).text();
 
+    [
+      "#ad_tag",
+      "script",
+      "#ADOP_V_yFm9GAZdAl",
+      "#news-box",
+      "#news-box2",
+      "#news-box3",
+      "#news-box4",
+    ].forEach((el) => $(el).remove());
+    
+    result["paragraphs"] = $("#a-left-scroll-in > div.article-text > div > div.text")
+      .html()
+      .trim()
+      .split('<p align="justify"></p>')
+      .map((el) => {
+        return el.trim().replaceAll("\n", "").replaceAll("\t", "");
+      }).filter((el) => el !== '');
     return result;
   }
 }

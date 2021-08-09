@@ -6,25 +6,29 @@ class JoongangNewsCrawler {
   public constructor() {}
 
   public async crawlArticles(day: number) {
+    const categories = ["politics", "money", "society", "world"];
+
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - day);
     dateLimit.setHours(0, 0, 0, 0);
 
     const result = [];
 
-    let isDone = false;
-    for (let i = 1; !isDone; ++i) {
-      const articleUrls = await this.crawlArticleUrls(
-        `https://news.joins.com/politics?page=${i}`
-      );
+    for (const category of categories) {
+      let isDone = false;
+      for (let i = 1; !isDone; ++i) {
+        const articleUrls = await this.crawlArticleUrls(
+          `https://news.joins.com/${category}?page=${i}`
+        );
 
-      for (let { link, date } of articleUrls) {
-        if (date < dateLimit) {
-          isDone = true;
-          break;
+        for (let { link, date } of articleUrls) {
+          if (date < dateLimit) {
+            isDone = true;
+            break;
+          }
+
+          result.push(await this.getArticle(link));
         }
-
-        result.push(await this.getArticle(link));
       }
     }
 
@@ -62,23 +66,33 @@ class JoongangNewsCrawler {
     result["press"] = "joongang";
     result["url"] = url;
     result["headline"] = $("#article_title").text().trim();
-    result["time"] = $(
+    result["subtitle"] = $(".ab_subtitle").text().trim();
+    result["createdAt"] = $(
       "#body > div.article_head > div.clearfx > div.byline > em:nth-child(2)"
     )
       .text()
       .trim();
-    result["modifiedtime"] = $(
+    result["modifiedAt"] = $(
       "#body > div.article_head > div.clearfx > div.byline > em:nth-child(3)"
     )
       .text()
       .trim();
-    result["body"] = $("#article_body").html().trim();
+    result["image"] = $(".ab_photo.photo_center > .image > img")[0]?.attribs?.src || '';
+    
+    const [reporterName, mail] = $(".ab_byline")?.text()?.split(" ")?.filter((el) => el !== "기자");
+    result["reporterName"] = reporterName
+    result["mail"] = mail;
+    
+    ["#ja_read_tracker", "#criteo_network", ".ab_subtitle"].forEach((el) => $(el).remove());
 
-    const paragraphs = result["body"].split("<br>");
-    const words = paragraphs[paragraphs.length - 2].trim().split(" ");
-
-    result["reporter"] = words[0];
-    result["mail"] = words[2];
+    result["paragraphs"] = $("#article_body")
+      .html()
+      ?.split("<br>")
+      ?.map((el) => {
+        return el.replaceAll("\n", "").replaceAll("&nbsp;", '').trim();
+      })
+      ?.filter((el) => el !== "&nbsp;")
+      ?.filter((el) => el !== "");
 
     return result;
   }

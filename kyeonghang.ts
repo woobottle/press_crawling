@@ -3,8 +3,6 @@ import * as fs from "fs";
 import * as cheerio from "cheerio";
 import * as iconv from "iconv-lite";
 
-// import AxiosRequestConfig from "axios";
-
 declare module "axios" {
   export interface AxiosRequestConfig {
     responseEncoding?: string;
@@ -15,6 +13,10 @@ class KhanNewsCrawler {
   public constructor() {}
 
   public async crawlArticles(day: number) {
+    const categories = ["politics", "national", "world", ];
+
+    'http://biz.khan.co.kr/khan_art_list.html?category=economy&page=1'
+    
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - day);
     dateLimit.setHours(0, 0, 0, 0);
