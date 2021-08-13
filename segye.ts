@@ -68,48 +68,26 @@ class SegyeNewsCrawler {
     const year = postNumber.slice(0, 4)
     const month = postNumber.slice(4, 6)
     const day = postNumber.slice(6, 8) 
-    const url = `https://www.segye.com/content/html/${year}/${month}/${day}/${postNumber}.json`;
+    // const url = `https://www.segye.com/content/html/${year}/${month}/${day}/${postNumber}.json`;
+    const url = "https://www.segye.com/newsView/20210809511483.html";
     const result = {};
     
     try {
-      // console.log(url);
-      const response = await axios.get(url, {headers: {'Connection': 'keep-alive'}});
-      const postData = response.data;
-      // const $ = cheerio.load(response.data);
+      const response = await axios.get(url);
+      const $ = cheerio.load(response.data);
+      const result = {};
+      // const postData = response.data;
+      // const { title, subtitle, dateCreated, dateLastModified, createdBy, createdUserEmail, fileContent } = postData; 
 
-      result["press"] = "segye";
-      result["url"] = url;
-      result["headline"] = postData.title || "";
-      result["subtitle"] = postData.subtitle || "";
-      result["createdAt"] = postData.dateCreated
-        ? new Date(postData.dateCreated)
-        : "";
-      result["modifiedAt"] = postData.dateLastModified
-        ? new Date(postData.dateLastModified)
-        : "";
-
-      result["reporterName"] = postData.createdBy;
-      result["mail"] = postData.createdUserEmail;
-
-      // [
-      //   ".armerica_ban",
-      //   ".article_relation",
-      //   ".center_ban",
-      //   ".right_ban",
-      //   ".txt_ban",
-      //   ".btn_page",
-      //   "#bestnews_layer",
-      //   ".article_keyword",
-      //   "script",
-      //   ".sub_title",
-      // ].forEach((el) => $(el).remove());
-      result["paragraphs"] = postData.fileContent;
-      // $("#content > div > div.article_txt")
-      //   .html()
-      //   .trim()
-      //   .split("<br><br>")
-      //   .filter((el) => el !== "")
-      //   .map((el) => el.trim());
+      // result["press"] = "segye";
+      // result["url"] = url;
+      // result["headline"] = title || "";
+      // result["subtitle"] = subtitle || "";
+      // result["createdAt"] = dateCreated ? new Date(dateCreated) : "";
+      // result["modifiedAt"] = dateLastModified ? new Date(dateLastModified) : "";
+      // result["reporterName"] = createdBy;
+      // result["mail"] = createdUserEmail;
+      // result["paragraphs"] = fileContent;
     } catch (error) {
       // console.log(link);
       // console.log(error);

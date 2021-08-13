@@ -87,7 +87,6 @@ class DongaNewsCrawler {
     )
       .text()
       .trim();
-
     result["image"] = $("#content > div > div.article_txt > .articlePhotoC > .thumb > img")[0]?.attribs?.src;
     const [ reporterName, , reporterMail ] = $("meta[property='dd:author']")[0]?.attribs?.content?.split(" ");
     result["reporterName"] = reporterName;
@@ -96,7 +95,10 @@ class DongaNewsCrawler {
     [".armerica_ban", ".article_relation", ".center_ban", ".right_ban", ".txt_ban",
       ".btn_page", "#bestnews_layer", ".article_keyword", "script",".sub_title",
     ].forEach((el) => $(el).remove());
-    result["paragraphs"] = $("#content > div > div.article_txt").html().trim().split("<br><br>").filter((el) => el !== '').map((el) => el.trim());
+    result["paragraphs"] = $("#content > div > div.article_txt")[0]
+      .children.filter((el) => el.type === "text")
+      .map((el) => (el as any).data.trim())
+      .filter((el) => el !== "");
     
 
     return result;
@@ -106,3 +108,4 @@ class DongaNewsCrawler {
 new DongaNewsCrawler().crawlArticles(1).then((articles) => {
   fs.writeFileSync("donga.json", JSON.stringify(articles, null, 2));
 });
+
