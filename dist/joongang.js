@@ -65,17 +65,15 @@ class JoongangNewsCrawler {
     async getArticle(url) {
         const response = await axios_1.default.get(url);
         const $ = cheerio.load(response.data);
+        const emailRegex = /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;
+        const reporterRegex = /\S* 기자$/g;
         const result = {};
         result["press"] = "joongang";
         result["url"] = url;
         result["headline"] = $("#article_title").text().trim();
         result["subtitle"] = $(".ab_subtitle").text().trim();
-        result["createdAt"] = $("#body > div.article_head > div.clearfx > div.byline > em:nth-child(2)")
-            .text()
-            .trim();
-        result["modifiedAt"] = $("#body > div.article_head > div.clearfx > div.byline > em:nth-child(3)")
-            .text()
-            .trim();
+        result["createdAt"] = $("#body > div.article_head > div.clearfx > div.byline > em:nth-child(2)").text().trim();
+        result["modifiedAt"] = $("#body > div.article_head > div.clearfx > div.byline > em:nth-child(3)").text().trim();
         result["image"] = $(".ab_photo.photo_center > .image > img")[0]?.attribs?.src || '';
         const [reporterName, mail] = $(".ab_byline")?.text()?.split(" ")?.filter((el) => el !== "기자");
         result["reporterName"] = reporterName;

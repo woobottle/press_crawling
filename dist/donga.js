@@ -71,19 +71,14 @@ class DongaNewsCrawler {
     async getArticle(url) {
         const response = await axios_1.default.get(url);
         const $ = cheerio.load(response.data);
+        const emailRegex = /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;
         const result = {};
         result["press"] = "donga";
         result["url"] = url;
         result["headline"] = $("#container > div.article_title > h1").text().trim();
-        result["subtitle"] = $("#content > div > div.article_txt > strong")
-            .text()
-            .trim();
-        result["createdAt"] = $("#container > div.article_title > div.title_foot > span:nth-child(2)")
-            .text()
-            .trim();
-        result["modifiedAt"] = $("#container > div.article_title > div.title_foot > span:nth-child(3)")
-            .text()
-            .trim();
+        result["subtitle"] = $("#content > div > div.article_txt > strong").text().trim().replaceAll('\n', '');
+        result["createdAt"] = $("#container > div.article_title > div.title_foot > span:nth-child(2)").text().trim();
+        result["modifiedAt"] = $("#container > div.article_title > div.title_foot > span:nth-child(3)").text().trim();
         result["image"] = $("#content > div > div.article_txt > .articlePhotoC > .thumb > img")[0]?.attribs?.src;
         const [reporterName, , reporterMail] = $("meta[property='dd:author']")[0]?.attribs?.content?.split(" ");
         result["reporterName"] = reporterName;
@@ -94,7 +89,8 @@ class DongaNewsCrawler {
         result["paragraphs"] = $("#content > div > div.article_txt")[0]
             .children.filter((el) => el.type === "text")
             .map((el) => el.data.trim())
-            .filter((el) => el !== "");
+            .filter((el) => el !== "")
+            .filter((el) => el.match(emailRegex)?.length !== 1);
         return result;
     }
 }

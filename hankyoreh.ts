@@ -64,36 +64,19 @@ class HaniNewsCrawler {
   private async getArticle(url: string) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
-
+    const emailRegex = /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;    
+    const reporterRegex = /\S* 기자$/g;
     const result = {};
 
     result["press"] = "hankyoreh";
     result["url"] = url;
     result["headline"] = $("#article_view_headline > h4 > span").text().trim();
-    result["subtitle"] = $(
-      "#a-left-scroll-in > div.article-text > div > div.subtitle"
-    )
-      .text()
-      .trim();
-    result["createdAt"] = $(
-      "#article_view_headline > p.date-time > span:nth-child(1)"
-    )
-      .text()
-      .trim();
-    result["modifiedAt"] = $(
-      "#article_view_headline > p.date-time > span:nth-child(2)"
-    )
-      .text()
-      .trim();
-    result["image"] = `https:${
-      $(
-        "#a-left-scroll-in > div.article-text > div > div.text > .image-area > .imageC > .image > img"
-      )[0]?.attribs?.src
-    }`;
+    result["subtitle"] = $("#a-left-scroll-in > div.article-text > div > div.subtitle").text().trim().replaceAll("\n", "");
+    result["createdAt"] = $("#article_view_headline > p.date-time > span:nth-child(1)").text().trim();
+    result["modifiedAt"] = $("#article_view_headline > p.date-time > span:nth-child(2)").text().trim();
+    result["image"] = `https:${$("#a-left-scroll-in > div.article-text > div > div.text > .image-area > .imageC > .image > img")[0]?.attribs?.src}`;
     result["reporterName"] = $("meta[property='dd:author']")[0]?.attribs?.content?.split(",")[0];
-    result["mail"] = $(
-      "#a-left-scroll-in > div.article-text > div > div.text > a[href^='mailto']"
-    ).text();
+    result["mail"] = $("#a-left-scroll-in > div.article-text > div > div.text > a[href^='mailto']").text();
 
     [
       "#ad_tag",
@@ -105,13 +88,12 @@ class HaniNewsCrawler {
       "#news-box4",
     ].forEach((el) => $(el).remove());
     
-    result["paragraphs"] = $("#a-left-scroll-in > div.article-text > div > div.text")
-      .html()
-      .trim()
-      .split('<p align="justify"></p>')
-      .map((el) => {
-        return el.trim().replaceAll("\n", "").replaceAll("\t", "");
-      }).filter((el) => el !== '');
+    result["paragraphs"] = $("#a-left-scroll-in > div.article-text > div > div.text")[0]
+      .children.filter((el) => el.type === "text")
+      .map((el) => (el as any).data.trim())
+      .filter((el) => el !== "")
+      .filter((el) => el.match(emailRegex)?.length !== 1 && el.match(reporterRegex)?.length !== 1);
+
     return result;
   }
 }
