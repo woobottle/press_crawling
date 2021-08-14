@@ -40,7 +40,7 @@ class JoongangNewsCrawler {
 
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
-
+    // 
     const list = $("#content > div.list_basic.list_sectionhome > ul");
     const count = list.children().length;
 
