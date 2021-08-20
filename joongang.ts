@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as fs from "fs";
 import * as cheerio from "cheerio";
+import v from 'voca';
 
 class JoongangNewsCrawler {
   public constructor() {}
@@ -58,7 +59,7 @@ class JoongangNewsCrawler {
   }
 
   private async getArticle(url: string) {
-    const response = await axios.get(url);
+    const response = await axios.get("https://news.joins.com/article/24128121");
     const $ = cheerio.load(response.data);
     const emailRegex = /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;
     const reporterRegex = /\S* 기자$/g;
@@ -75,12 +76,44 @@ class JoongangNewsCrawler {
     result["reporterName"] = reporterName
     result["mail"] = mail;
 
-    ["#ja_read_tracker", "#criteo_network", ".ab_subtitle"].forEach((el) => $(el).remove());
+    [
+      "#ja_read_tracker",
+      "#criteo_network",
+      ".ab_subtitle",
+      ".caption",
+      ".ab_byline",
+    ].forEach((el) => $(el).remove());
+    const temp = v.stripTags($("#article_body").html(), ['b', 'img', 'br'], 'br')
+    const paragraphs = temp
+      .replaceAll("<b>", "")
+      .replaceAll("</b>", "")
+      .trim()
+      .replaceAll("&nbsp;", "");
+    result["paragraphs"] = paragraphs.split("<br>")
+      .map((el) => el.trim())
+      .filter((el) => el !== "")
+      .map((el) => {
+        if(el.indexOf('data-src')) {
+          el = el.match(/<img[^>]*?data-src=(["\'])?((?:.(?!\1|>))*.?)/)[2] || '';
+        }
+        return el;
+      })
+      .filter((el) => el !== '');
+    
+    // ["#ja_read_tracker", "#criteo_network", ".ab_subtitle"].forEach((el) => $(el).remove());
 
-    result["paragraphs"] = $("#article_body")[0]
-      ?.children.filter((el) => el.type === "text")
-      ?.map((el) => (el as any).data.trim())
-      ?.filter((el) => el !== "");
+    // result["paragraphs"] = $("#article_body")[0]
+    //   ?.children.filter((el) => el.type === "text")
+    //   ?.map((el) => (el as any).data.trim())
+    //   ?.filter((el) => el !== "");
+
+    
+    // const b = $("#article_body")[0].children.filter(
+    //   (el) =>
+    //     el.type === "text" ||
+    //     (el.type === "tag" && ((el as any).name === "b" || (el as any).name === "br"))
+    // );
+
     console.log(result);
     return result;
   }
