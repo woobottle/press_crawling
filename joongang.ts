@@ -7,7 +7,7 @@ class JoongangNewsCrawler {
   public constructor() {}
 
   public async crawlArticles(day: number) {
-    const categories = ["politics", "money", "society", "world"];
+    const categories = [["Politics", 185], ["Money", 193], ["Society", 192] , ["World", 208]];
 
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - day);
@@ -15,19 +15,19 @@ class JoongangNewsCrawler {
 
     const result = [];
 
-    for (const category of categories) {
+    for (const [category, itemId] of categories) {
       let isDone = false;
       for (let i = 1; !isDone; ++i) {
         const articleUrls = await this.crawlArticleUrls(
-          `https://news.joins.com/${category}?page=${i}`
+          `https://www.joongang.co.kr/_CP/537?category=${category}&pageItemId=${itemId}&page=${i}`,
         );
-
+        
         for (let { link, date } of articleUrls) {
           if (date < dateLimit) {
             isDone = true;
             break;
           }
-
+          
           result.push(await this.getArticle(link));
         }
       }
@@ -38,13 +38,12 @@ class JoongangNewsCrawler {
 
   private async crawlArticleUrls(url: string) {
     const result = [];
-
+    console.log(url);
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
-    // 
     const list = $("#content > div.list_basic.list_sectionhome > ul");
     const count = list.children().length;
-
+    console.log(list);
     for (let i = 1; i <= count; ++i) {
       const obj = {};
       obj["link"] = list.find(`li:nth-child(${i}) > h2 > a`).attr("href");
@@ -54,7 +53,7 @@ class JoongangNewsCrawler {
 
       result.push(obj);
     }
-
+    console.log(result);
     return result;
   }
 
