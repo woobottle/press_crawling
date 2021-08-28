@@ -25,6 +25,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
 const fs = __importStar(require("fs"));
 const cheerio = __importStar(require("cheerio"));
+const voca_1 = __importDefault(require("voca"));
 class HaniNewsCrawler {
     constructor() { }
     async crawlArticles(day) {
@@ -83,17 +84,29 @@ class HaniNewsCrawler {
         [
             "#ad_tag",
             "script",
+            ".desc",
             "#ADOP_V_yFm9GAZdAl",
             "#news-box",
             "#news-box2",
             "#news-box3",
             "#news-box4",
         ].forEach((el) => $(el).remove());
-        result["paragraphs"] = $("#a-left-scroll-in > div.article-text > div > div.text")[0]
-            .children.filter((el) => el.type === "text")
-            .map((el) => el.data.trim())
-            .filter((el) => el !== "")
-            .filter((el) => el.match(emailRegex)?.length !== 1 && el.match(reporterRegex)?.length !== 1);
+        const temp = voca_1.default.stripTags($("#a-left-scroll-in > div.article-text > div > div.text").html(), ["img"], "<br>");
+        const paragraphs = temp.replaceAll("&lt;", "<").replaceAll("&gt;", ">");
+        const regex = /src\s*=\s*"([^"]+)"/;
+        result["paragraphs"] = paragraphs
+            .split("<br>")
+            .map((el) => el.trim())
+            .filter((el) => el !== '')
+            .map((el) => {
+            if (el.indexOf("src")) {
+                const src = regex.exec(el);
+                if (src) {
+                    el = `https:${src[1]}`;
+                }
+            }
+            return el;
+        });
         return result;
     }
 }

@@ -25,11 +25,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
 const fs = __importStar(require("fs"));
 const cheerio = __importStar(require("cheerio"));
+const voca_1 = __importDefault(require("voca"));
 class SegyeNewsCrawler {
     constructor() { }
     async crawlArticles(day) {
         const politics = [`https://www.segye.com/boxTemplate/news/box/newsList.do?dataPath=&dataId=0101010000000&listSize=15&naviSize=10&page={{page}}&dataType=slist`];
         const society = [`https://segye.com/boxTemplate/society/box/newsList.do?dataPath=&dataId=0101080000000&listSize=15&naviSize=10&page={{page}}&dataType=slist`];
+        const world = [
+            "https://www.segye.com/boxTemplate/newsList/box/newsList.do?dataPath=0101040000000&dataId=0101040000000&listSize=10&naviSize=10&page={{page}}&dataType=list",
+        ];
         const economies = [
             `https://www.segye.com/boxTemplate/newsList/box/newsList.do?dataPath=0101030100000&dataId=0101030100000&listSize=10&naviSize=10&page={{page}}&dataType=list`,
             `https://www.segye.com/boxTemplate/newsList/box/newsList.do?dataPath=0101030300000&dataId=0101030300000&listSize=10&naviSize=10&page={{page}}&dataType=list`,
@@ -39,7 +43,7 @@ class SegyeNewsCrawler {
         dateLimit.setDate(dateLimit.getDate() - day);
         dateLimit.setHours(0, 0, 0, 0);
         const result = [];
-        for (const category of [...politics, ...society, ...economies]) {
+        for (const category of [...politics, ...world, ...society, ...economies]) {
             let isDone = false;
             for (let i = 0; !isDone; ++i) {
                 const articleUrls = await this.crawlArticleUrls(category.replace('{{page}}', `${i}`));
@@ -74,12 +78,36 @@ class SegyeNewsCrawler {
         const year = postNumber.slice(0, 4);
         const month = postNumber.slice(4, 6);
         const day = postNumber.slice(6, 8);
-        const url = "https://www.segye.com/newsView/20210809511483.html";
-        const result = {};
+        const url = "https://www.segye.com/content/html/2021/08/09/20210809511483.json";
+        let result = {};
         try {
             const response = await axios_1.default.get(url);
-            const $ = cheerio.load(response.data);
-            const result = {};
+            const postData = response.data;
+            const { title, subTitle, dateCreated, dateLastModified, createdBy, createdUserEmail, fileContent } = postData;
+            result["press"] = "segye";
+            result["url"] = url;
+            result["headline"] = title || "";
+            result["subtitle"] = subTitle || "";
+            result["createdAt"] = dateCreated ? new Date(dateCreated) : "";
+            result["modifiedAt"] = dateLastModified ? new Date(dateLastModified) : "";
+            result["reporterName"] = createdBy;
+            result["mail"] = createdUserEmail;
+            const regex = /src\s*=\s*"([^"]+)"/;
+            const temp = voca_1.default.stripTags(fileContent, ["figcaption", "b", "img", "br"], "<br>");
+            result["paragraphs"] = temp
+                .split("<br>")
+                .map((el) => el.trim())
+                .map((el) => el.replace("&nbsp;", ""))
+                .filter((el) => el !== "")
+                .map((el) => {
+                if (el.indexOf("src")) {
+                    const src = regex.exec(el);
+                    if (src) {
+                        el = `https://img.segye.com${src[1]}`;
+                    }
+                }
+                return el;
+            });
         }
         catch (error) {
         }

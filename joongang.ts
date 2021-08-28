@@ -38,17 +38,15 @@ class JoongangNewsCrawler {
 
   private async crawlArticleUrls(url: string) {
     const result = [];
-    console.log(url);
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
-    const list = $("#content > div.list_basic.list_sectionhome > ul");
+    const list = $("#story_list");
     const count = list.children().length;
-    console.log(list);
     for (let i = 1; i <= count; ++i) {
       const obj = {};
-      obj["link"] = list.find(`li:nth-child(${i}) > h2 > a`).attr("href");
+      obj["link"] = list.find(`li:nth-child(${i}) > .card_body > .headline > a`).attr("href");
       obj["date"] = new Date(
-        list.find(`li:nth-child(${i}) > span.byline`).text()
+        list.find(`li:nth-child(${i}) > .card_body > .meta > p.date`).text()
       );
 
       result.push(obj);
@@ -58,47 +56,49 @@ class JoongangNewsCrawler {
   }
 
   private async getArticle(url: string) {
-    const response = await axios.get("https://news.joins.com/article/24128121");
+    const response = await axios.get(
+      "https://www.joongang.co.kr/article/25000366"
+    );
     const $ = cheerio.load(response.data);
-    const emailRegex = /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;
+    const emailRegex =
+      /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;
     const reporterRegex = /\S* 기자$/g;
     const result = {};
-
     result["press"] = "joongang";
     result["url"] = url;
-    result["headline"] = $("#article_title").text().trim();
-    result["subtitle"] = $(".ab_subtitle").text().trim().replaceAll('\n', '');
-    result["createdAt"] = $("#body > div.article_head > div.clearfx > div.byline > em:nth-child(2)").text().trim();
-    result["modifiedAt"] = $("#body > div.article_head > div.clearfx > div.byline > em:nth-child(3)").text().trim();
-    result["image"] = $(".ab_photo.photo_center > .image > img")[0]?.attribs?.src || '';
+    result["headline"] = $(".article > .article_header > .headline").text().trim().replaceAll("\n", "");
+    // 중앙일보 서브타이틀 사라짐
+    result["createdAt"] = $(".article > .article_header > .datetime > .time_bx > .date:nth-child(1)").text().trim();
+    result["modifiedAt"] = $(".article > .article_header > .datetime > .time_bx > .date:nth-child(2)").text().trim();
+    result["image"] =$(".ab_photo.photo_center > .image > img")[0]?.attribs?.src || "";
     const [reporterName, mail] = $(".ab_byline")?.text()?.split(" ")?.filter((el) => el !== "기자");
-    result["reporterName"] = reporterName
+    result["reporterName"] = reporterName;
     result["mail"] = mail;
 
-    [
-      "#ja_read_tracker",
-      "#criteo_network",
-      ".ab_subtitle",
-      ".caption",
-      ".ab_byline",
-    ].forEach((el) => $(el).remove());
-    const temp = v.stripTags($("#article_body").html(), ['b', 'img', 'br'], 'br')
+    [".ad_wrap", ".ab_byline", ".ab_subtitle", ".caption"].forEach((el) =>$(el).remove());
+    const temp = v.stripTags($("#article_body").html(),["b", "img", "br"],"<br>");
     const paragraphs = temp
       .replaceAll("<b>", "")
       .replaceAll("</b>", "")
       .trim()
       .replaceAll("&nbsp;", "");
-    result["paragraphs"] = paragraphs.split("<br>")
+    // paragraphs.split("<br>").map((el) => el.trim()).filter((el) => el !== "").map((el) => {if (el.indexOf("src")) {el =el.match(/<img[^>]*?src=(["\'])?((?:.(?!\2|>))*.?)/)[2] ||"";}return el;}).filter((el) => el !== "");
+    const regex = /src\s*=\s*"([^"]+)"/;
+    result["paragraphs"] = paragraphs
+      .split("<br>")
       .map((el) => el.trim())
       .filter((el) => el !== "")
       .map((el) => {
-        if(el.indexOf('data-src')) {
-          el = el.match(/<img[^>]*?data-src=(["\'])?((?:.(?!\1|>))*.?)/)[2] || '';
+        if (el.indexOf("src")) {
+          const src = regex.exec(el);
+          if (src) {
+            el = src[1];
+          }
         }
         return el;
       })
-      .filter((el) => el !== '');
-    
+      .filter((el) => el !== "");
+
     // ["#ja_read_tracker", "#criteo_network", ".ab_subtitle"].forEach((el) => $(el).remove());
 
     // result["paragraphs"] = $("#article_body")[0]
@@ -106,7 +106,6 @@ class JoongangNewsCrawler {
     //   ?.map((el) => (el as any).data.trim())
     //   ?.filter((el) => el !== "");
 
-    
     // const b = $("#article_body")[0].children.filter(
     //   (el) =>
     //     el.type === "text" ||

@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as fs from "fs";
 import * as cheerio from "cheerio";
+import v from "voca";
 
 class HaniNewsCrawler {
   public constructor() {}
@@ -81,18 +82,33 @@ class HaniNewsCrawler {
     [
       "#ad_tag",
       "script",
+      ".desc",
       "#ADOP_V_yFm9GAZdAl",
       "#news-box",
       "#news-box2",
       "#news-box3",
       "#news-box4",
     ].forEach((el) => $(el).remove());
-    
-    result["paragraphs"] = $("#a-left-scroll-in > div.article-text > div > div.text")[0]
-      .children.filter((el) => el.type === "text")
-      .map((el) => (el as any).data.trim())
-      .filter((el) => el !== "")
-      .filter((el) => el.match(emailRegex)?.length !== 1 && el.match(reporterRegex)?.length !== 1);
+    const temp = v.stripTags(
+      $("#a-left-scroll-in > div.article-text > div > div.text").html(),
+      ["img"],
+      "<br>"
+    );
+    const paragraphs = temp.replaceAll("&lt;", "<").replaceAll("&gt;", ">")
+    const regex = /src\s*=\s*"([^"]+)"/;
+    result["paragraphs"] = paragraphs
+      .split("<br>")
+      .map((el) => el.trim())
+      .filter((el) => el !== '')
+      .map((el) => {
+        if (el.indexOf("src")) {
+          const src = regex.exec(el);
+          if (src) {
+            el = `https:${src[1]}`;
+          }
+        }
+        return el;
+      })
 
     return result;
   }

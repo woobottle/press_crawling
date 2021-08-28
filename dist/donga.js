@@ -25,6 +25,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
 const fs = __importStar(require("fs"));
 const cheerio = __importStar(require("cheerio"));
+const voca_1 = __importDefault(require("voca"));
 class DongaNewsCrawler {
     constructor() { }
     async crawlArticles(day) {
@@ -86,11 +87,21 @@ class DongaNewsCrawler {
         [".armerica_ban", ".article_relation", ".center_ban", ".right_ban", ".txt_ban",
             ".btn_page", "#bestnews_layer", ".article_keyword", "script", ".sub_title",
         ].forEach((el) => $(el).remove());
-        result["paragraphs"] = $("#content > div > div.article_txt")[0]
-            .children.filter((el) => el.type === "text")
-            .map((el) => el.data.trim())
-            .filter((el) => el !== "")
-            .filter((el) => el.match(emailRegex)?.length !== 1);
+        const paragraphs = voca_1.default.stripTags($("#content > div > div.article_txt").html(), ["img"], "<br>");
+        const regex = /src\s*=\s*"([^"]+)"/;
+        result["paragraphs"] = paragraphs
+            .split("<br>")
+            .map((el) => el.trim())
+            .filter((el) => el !== '')
+            .map((el) => {
+            if (el.indexOf("src")) {
+                const src = regex.exec(el);
+                if (src) {
+                    el = src[1];
+                }
+            }
+            return el;
+        });
         return result;
     }
 }
