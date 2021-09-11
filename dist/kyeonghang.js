@@ -44,7 +44,6 @@ class KhanNewsCrawler {
             for (let i = 1; !isDone; ++i) {
                 const articleUrls = await this.crawlArticleUrls("https://www.khan.co.kr/SecListData.html", category, i);
                 for (let { link, date } of articleUrls) {
-                    console.log('00000', link, date);
                     if (date < dateLimit) {
                         isDone = true;
                         break;
@@ -57,12 +56,11 @@ class KhanNewsCrawler {
         for (let i = 1; !isDone; ++i) {
             const articleUrls = await this.getEconomyArticleUrls(`http://biz.khan.co.kr/khan_art_list.html?category=market&page=${i}`);
             for (let { link, date } of articleUrls) {
-                console.log('12313', link, date);
                 if (date < dateLimit) {
                     isDone = true;
                     break;
                 }
-                result.push(await this.getArticle(link, "경제"));
+                result.push(await this.getArticle(link, "경제", 'economy'));
             }
         }
         return result;
@@ -106,14 +104,15 @@ class KhanNewsCrawler {
         }
         return result;
     }
-    async getArticle(url, categoryName) {
+    async getArticle(url, categoryName, type) {
         const response = await axios_1.default.request({
             method: "GET",
             url: url,
             responseType: "arraybuffer",
             responseEncoding: "binary",
         });
-        const $ = cheerio.load(iconv.decode(response.data, "euc-kr"));
+        const decodeType = type === 'economy' ? 'euc-kr' : 'utf-8';
+        const $ = cheerio.load(iconv.decode(response.data, decodeType));
         const result = {};
         result["press"] = "경향신문";
         result["url"] = url;
@@ -141,7 +140,7 @@ class KhanNewsCrawler {
             if (el.indexOf("src")) {
                 const src = regex.exec(el);
                 if (src) {
-                    el = src[1];
+                    el = `https:${src[1]}`;
                 }
             }
             return el;
@@ -150,6 +149,6 @@ class KhanNewsCrawler {
     }
 }
 new KhanNewsCrawler().crawlArticles(1).then((articles) => {
-    fs.writeFileSync("khan.json", JSON.stringify(articles, null, 2));
+    fs.writeFileSync("kyeonghangs.json", JSON.stringify(articles, null, 2));
 });
 //# sourceMappingURL=kyeonghang.js.map
