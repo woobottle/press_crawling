@@ -72,9 +72,12 @@ class ChosunCrawler {
         result["headline"] = $("meta[property='og:title']")[0].attribs.content;
         const test = $("#fusion-metadata")[0].children[0];
         const testScripts = test.data;
+        const lastIndex = testScripts.indexOf(";Fusion.globalContentConfig=");
         const testContents = testScripts
-            .substring(testScripts.indeof("Fusion.globalContent"))
-            .replace("Fusion.globalContent", "");
+            .substring(testScripts.indexOf("Fusion.globalContent"), lastIndex)
+            .replace("Fusion.globalContent=", "")
+            .replace(";Fusion.spa=false;Fusion.spaEnabled=false;", "");
+        const testJson = JSON.parse(testContents);
         result["subtitle"] = $("#fusion-metadata")
             .text()
             .trim()

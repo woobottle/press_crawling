@@ -184,5 +184,5 @@ class KhanNewsCrawler {
 }
 
 new KhanNewsCrawler().crawlArticles(1).then((articles) => {
-  fs.writeFileSync("kyeonghangs.json", JSON.stringify(articles, null, 2));
+  fs.writeFileSync("kyeonghang.json", JSON.stringify(articles, null, 2));
 });
