@@ -21,7 +21,7 @@ class JoongangNewsCrawler {
         const articleUrls = await this.crawlArticleUrls(
           `https://www.joongang.co.kr/_CP/537?category=${category}&pageItemId=${itemId}&page=${i}`,
         );
-        
+      
         for (let { link, date } of articleUrls) {
           if (date < dateLimit) {
             isDone = true;
@@ -56,9 +56,7 @@ class JoongangNewsCrawler {
   }
 
   private async getArticle(url: string) {
-    const response = await axios.get(
-      "https://www.joongang.co.kr/article/25000366"
-    );
+    const response = await axios.get(url);
     const $ = cheerio.load(response.data);
     const emailRegex =
       /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;
@@ -112,7 +110,6 @@ class JoongangNewsCrawler {
     //     (el.type === "tag" && ((el as any).name === "b" || (el as any).name === "br"))
     // );
 
-    console.log(result);
     return result;
   }
 }

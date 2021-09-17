@@ -16,19 +16,20 @@ class ChosunCrawler {
     const result = [];
     for (const [categoryName, category] of categories) {
       let isDone = false;
+      
       for (let i = 0; !isDone; ++i) {
         const articleUrls = await this.crawlArticleUrls(
           `https://www.chosun.com/pf/api/v3/content/fetch/story-feed?query={"excludeContentTypes":"video","excludeSections":"","includeContentTypes":"story","includeSections":"/${category}","offset":${
             i * 10
           },"size":10}&filter={content_elements{_id,canonical_url,display_date,count,next, promo_items{basic{url, resizedUrls{16x9_lg,16x9_md,16x9_sm},subtype,type,url,width}}}&d=654&_website=chosun`
         );
-
+        
         for (let { link, date, image } of articleUrls) {
           if (date < dateLimit) {
             isDone = true;
             break;
           }
-
+          console.log(link);
           result.push(await this.getArticle(link, image, categoryName));
         }
       }
@@ -44,7 +45,7 @@ class ChosunCrawler {
     list.forEach((el, index) => {
       const { canonical_url: link, display_date: date, promo_items } = el;
       const obj = {};
-
+      console.log(link);
       obj["link"] = `https://www.chosun.com${link}`;
       obj["date"] = new Date(date);
       obj["image"] = promo_items?.basic?.resizedUrls["16x9_lg"] || '';
@@ -56,8 +57,6 @@ class ChosunCrawler {
   private async getArticle(url: string, image: string, categoryName: string) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
-    const emailRegex =
-      /[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/g;
     const result = {};
 
     const metadata = $("#fusion-metadata")[0].children[0] // [0].children[0].data;

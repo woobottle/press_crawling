@@ -58,10 +58,7 @@ class SegyeNewsCrawler {
         );
 
         for (const { link, date } of articleUrls) {
-          if (
-            date.getMonth() === dateLimit.getMonth() &&
-            date.getDate() === dateLimit.getDate()
-          ) {
+          if (dateLimit > date) {
             isDone = true;
             break;
           }
@@ -127,6 +124,7 @@ class SegyeNewsCrawler {
       result.url = url;
       result.title = title || '';
       result.sub_title = subTitle || '';
+
       result.post_made_at = dateCreated
         ? moment(`${new Date(dateCreated)}`).format('입력 YYYY-MM-DD HH:mm')
         : '';
