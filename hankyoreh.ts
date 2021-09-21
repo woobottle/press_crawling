@@ -27,7 +27,10 @@ class HaniNewsCrawler {
             break;
           }
 
-          result.push(await this.getArticle(link));
+          const articleData = await this.getArticle(link);
+          if(articleData) {
+            result.push(articleData);
+          }
         }
       }
     }
@@ -96,7 +99,7 @@ class HaniNewsCrawler {
     );
     const paragraphs = temp.replaceAll("&lt;", "<").replaceAll("&gt;", ">")
     const regex = /src\s*=\s*"([^"]+)"/;
-    result["paragraphs"] = paragraphs
+    const filteredParagraphs = paragraphs
       .split("<br>")
       .map((el) => el.trim())
       .filter((el) => el !== '')
@@ -109,8 +112,10 @@ class HaniNewsCrawler {
         }
         return el;
       })
+    result["paragraphs"] = filteredParagraphs
 
-    return result;
+    const returnValue = filteredParagraphs.length === 0 ? null : result;
+    return returnValue;
   }
 }
 

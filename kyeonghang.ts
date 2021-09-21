@@ -4,6 +4,7 @@ import * as cheerio from "cheerio";
 import * as iconv from "iconv-lite";
 import v from 'voca';
 import moment from 'moment'
+import { CheerioAPI } from "cheerio";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
@@ -20,7 +21,7 @@ class KhanNewsCrawler {
       ["사회", "national"],
       ["국제", "world"],
     ];
-    
+
     const dateLimit = new Date();
     dateLimit.setDate(dateLimit.getDate() - day);
     dateLimit.setHours(0, 0, 0, 0);
@@ -57,7 +58,7 @@ class KhanNewsCrawler {
           break;
         }
 
-        result.push(await this.getArticle(link, "경제", 'economy'));
+        result.push(await this.getArticle(link, "경제", "economy"));
       }
     }
 
@@ -76,23 +77,26 @@ class KhanNewsCrawler {
       data,
     };
     const response = await axios(config).then((response) => response.data);
-    
-    const list = response.items
+
+    const list = response.items;
     const count = list.length;
 
     list.forEach((el, index) => {
-      const {art_id, url} = el;
+      const { art_id, url } = el;
       const obj = {};
 
       obj["link"] = url;
       obj["date"] = new Date(
-        `${art_id.slice(0,4)} ${art_id.slice(4,6)} ${art_id.slice(6,8)} ${art_id.slice(8,10)}:${art_id.slice(10, 12)}`
+        `${art_id.slice(0, 4)} ${art_id.slice(4, 6)} ${art_id.slice(
+          6,
+          8
+        )} ${art_id.slice(8, 10)}:${art_id.slice(10, 12)}`
       );
 
       obj["link"] = new URL(obj["link"], url).href;
 
       result.push(obj);
-    })
+    });
 
     return result;
   }
@@ -100,7 +104,7 @@ class KhanNewsCrawler {
   private async getEconomyArticleUrls(url: string) {
     const result = [];
     const response = await axios.get(url);
-    
+
     const $ = cheerio.load(response.data);
     const list = $(".content_Wrap > div.news_list > ul");
     const count = list.children().length;
@@ -108,7 +112,9 @@ class KhanNewsCrawler {
     for (let i = 1; i <= count; ++i) {
       const obj = {};
 
-      obj["link"] = list.find(`li:nth-child(${i}) > div > strong > a`).prop("href");
+      obj["link"] = list
+        .find(`li:nth-child(${i}) > div > strong > a`)
+        .prop("href");
       obj["date"] = new Date(
         list.find(`li:nth-child(${i}) > div > span.byline > em.letter`).text()
       );
@@ -129,11 +135,23 @@ class KhanNewsCrawler {
       responseEncoding: "binary",
     });
 
-    const decodeType = type === 'economy' ? 'euc-kr' : 'utf-8';
+    const decodeType = type === "economy" ? "euc-kr" : "utf-8";
     const $ = cheerio.load(iconv.decode(response.data, decodeType));
+    const returnValue =
+      type === "economy"
+        ? this.getDetailEconomyArticle($, url, categoryName)
+        : this.getDetailNormalArticle($, url, categoryName);
+    return returnValue;
+  }
+
+  private async getDetailNormalArticle(
+    $: CheerioAPI,
+    url: string,
+    categoryName: string
+  ) {
     const result = {};
 
-    result["press"] = "경향신문";
+    result["press"] = "경향일보";
     result["url"] = url;
     result["headline"] = $(".headline").text().trim();
     result["subtitle"] = "";
@@ -152,12 +170,20 @@ class KhanNewsCrawler {
     )[0].attribs.content.split("/");
     result["reporterName"] = reporterName;
     result["mail"] = reporterMail?.replace("제공", "") || "";
-    result["image"] = "https:" + $("#articleBody > div.art_photo > div.art_photo_wrap > picture > img")[0]?.attribs?.src;
+    result["image"] =
+      "https:" +
+      $("#articleBody > div.art_photo > div.art_photo_wrap > picture > img")[0]
+        ?.attribs?.src;
     result["category_name"] = categoryName;
-    
-    ["style", ".iwmads", ".article_bottom_ad", "#ads5PgPv", "script"].forEach((el) =>
-      $(el).remove()
-    );
+
+    [
+      "style",
+      ".iwmads",
+      ".article_bottom_ad",
+      "#ads5PgPv",
+      "script",
+      ".srch-kw",
+    ].forEach((el) => $(el).remove());
     const paragraphs = v.stripTags(
       $(".art_cont > .art_body").html(),
       ["img"],
@@ -174,6 +200,69 @@ class KhanNewsCrawler {
           const src = regex.exec(el);
           if (src) {
             el = `https:${src[1]}`;
+          }
+        }
+        return el;
+      });
+
+    return result;
+  }
+
+  private async getDetailEconomyArticle(
+    $: CheerioAPI,
+    url: string,
+    categoryName: string
+  ) {
+    const result = {};
+
+    result["press"] = "경향신문";
+    result["url"] = url;
+    result["headline"] = $(".headline").text().trim();
+    result["subtitle"] = "";
+    result["createdAt"] = $(
+      ".view_header > .function_wrap > .pagecontrol > .byline > em:nth-child(1)"
+    )
+      .text()
+      .trim();
+    result["modifiedAt"] = $(
+      ".view_header > .function_wrap > .pagecontrol > .byline > em:nth-child(2)"
+    )
+      .text()
+      .trim();
+    const [reporterName, reporterMail] = $(
+      "meta[property='article:author']"
+    )[0].attribs.content.split("/");
+    result["reporterName"] = reporterName;
+    result["mail"] = reporterMail?.replace("제공", "") || "";
+    result["image"] =
+      $("meta[property='og:image']")[0]
+        ?.attribs?.content;
+    result["category_name"] = categoryName;
+
+    [
+      "style",
+      ".iwmads",
+      ".article_bottom_ad",
+      "#ads5PgPv",
+      "script",
+      ".srch-kw",
+    ].forEach((el) => $(el).remove());
+    const paragraphs = v.stripTags(
+      $(".art_cont > .art_body").html(),
+      ["img"],
+      "<br>"
+    );
+
+    const regex = /src\s*=\s*"([^"]+)"/;
+    result["paragraphs"] = paragraphs
+      .split("<br>")
+      .map((el) => el.trim())
+      .filter((el) => el !== "")
+      .map((el) => {
+        if (el.indexOf("src")) {
+          const src = regex.exec(el);
+          if (src) {
+            el = `${src[1]}`;
           }
         }
         return el;

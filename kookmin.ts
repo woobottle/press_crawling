@@ -33,7 +33,10 @@ class KookminNewsCrawler {
         );
 
         for (let { link, image } of articleUrls) {
-          result.push(await this.getArticle(link, categoryName, image));
+          const articleData = await this.getArticle(link, categoryName, image);
+          if (articleData) {
+            result.push(articleData);
+          }
         }
 
         if(articleUrls.length !== 40) {
@@ -72,9 +75,6 @@ class KookminNewsCrawler {
         `div:nth-child(${i}) > p.pic > a > img`
       )[0]?.attribs?.src || '';
 
-      console.log(i, list
-        .find(`div:nth-child(${i}) > dl.nws > dt > a`)
-        .attr("href"));
       result.push(obj);
     }
 
@@ -125,24 +125,27 @@ class KookminNewsCrawler {
       .trim()
       .replaceAll("&nbsp;", "");
     
-      const regex = /src\s*=\s*"([^"]+)"/;
-      result["paragraphs"] = paragraphs
-      .split("<br><br>")
-      .map((el) => el.replaceAll("<br>", ""))
-      .map((el) => el.trim())
-      .filter((el) => el !== "")
-      .map((el) => {
-        if (el.indexOf("src")) {
-          const src = regex.exec(el);
-          if (src) {
-            el = src[1];
-          }
+    const regex = /src\s*=\s*"([^"]+)"/;
+    const filteredParagraphs = paragraphs
+    .split("<br><br>")
+    .map((el) => el.replaceAll("<br>", ""))
+    .map((el) => el.trim())
+    .filter((el) => el !== "")
+    .map((el) => {
+      if (el.indexOf("src")) {
+        const src = regex.exec(el);
+        if (src) {
+          el = src[1];
         }
-        return el;
-      })
-      .filter((el) => el !== "");
+      }
+      return el;
+    })
+    .filter((el) => el !== "");
+    
+    result["paragraphs"] = filteredParagraphs;
 
-    return result;
+    const returnValue = filteredParagraphs.length === 0 ? null : result;
+    return returnValue;
   }
 }
 

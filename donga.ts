@@ -20,15 +20,15 @@ class DongaNewsCrawler {
         const articleUrls = await this.crawlArticleUrls(
           `https://www.donga.com/news/${category}/List?p=${
             i * 20 + 1
-          }&prod=news&ymd=&m=NP`
+          }&prod=news&ymd=&m=`
         );
-
         for (let { link, date } of articleUrls) {
           if (date < dateLimit) {
             isDone = true;
             break;
           }
-
+          
+          console.log(link, date);
           result.push(await this.getArticle(link));
         }
       }

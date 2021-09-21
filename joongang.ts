@@ -51,7 +51,6 @@ class JoongangNewsCrawler {
 
       result.push(obj);
     }
-    console.log(result);
     return result;
   }
 
@@ -68,7 +67,7 @@ class JoongangNewsCrawler {
     // 중앙일보 서브타이틀 사라짐
     result["createdAt"] = $(".article > .article_header > .datetime > .time_bx > .date:nth-child(1)").text().trim();
     result["modifiedAt"] = $(".article > .article_header > .datetime > .time_bx > .date:nth-child(2)").text().trim();
-    result["image"] =$(".ab_photo.photo_center > .image > img")[0]?.attribs?.src || "";
+    result["image"] = $("meta[property='og:image']")[0]?.attribs?.content || "";
     const [reporterName, mail] = $(".ab_byline")?.text()?.split(" ")?.filter((el) => el !== "기자");
     result["reporterName"] = reporterName;
     result["mail"] = mail;
@@ -80,7 +79,6 @@ class JoongangNewsCrawler {
       .replaceAll("</b>", "")
       .trim()
       .replaceAll("&nbsp;", "");
-    // paragraphs.split("<br>").map((el) => el.trim()).filter((el) => el !== "").map((el) => {if (el.indexOf("src")) {el =el.match(/<img[^>]*?src=(["\'])?((?:.(?!\2|>))*.?)/)[2] ||"";}return el;}).filter((el) => el !== "");
     const regex = /src\s*=\s*"([^"]+)"/;
     result["paragraphs"] = paragraphs
       .split("<br>")
@@ -96,19 +94,6 @@ class JoongangNewsCrawler {
         return el;
       })
       .filter((el) => el !== "");
-
-    // ["#ja_read_tracker", "#criteo_network", ".ab_subtitle"].forEach((el) => $(el).remove());
-
-    // result["paragraphs"] = $("#article_body")[0]
-    //   ?.children.filter((el) => el.type === "text")
-    //   ?.map((el) => (el as any).data.trim())
-    //   ?.filter((el) => el !== "");
-
-    // const b = $("#article_body")[0].children.filter(
-    //   (el) =>
-    //     el.type === "text" ||
-    //     (el.type === "tag" && ((el as any).name === "b" || (el as any).name === "br"))
-    // );
 
     return result;
   }
